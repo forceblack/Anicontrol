@@ -19,31 +19,31 @@
 #endif
 #include <SPI.h>
 
+
 USB Usb;
-//USBHub Hub(&Usb);
+
 USBH_MIDI  Midi(&Usb);
 
-void MIDI_poll();
+void MIDI_poll();          //Affichage de signal Midi de L'USB vers le Serial Monitor
+void MIDI_sendToCable();    //On va essayer d'envoyer aussi l'info dans le Pin Tx de l'arduino
 
-uint16_t pid, vid;
 
 void setup()
 {
-  vid = pid = 0;
   Serial.begin(115200);
-
-  if (Usb.Init() == -1) {
-    while (1); //halt
-  }//if (Usb.Init() == -1...
+  if (Usb.Init() == -1) 
+    {
+      while (1); //halt
+    }
   delay( 200 );
 }
 
 void loop()
 {
   Usb.Task();
-  //uint32_t t1 = (uint32_t)micros();
   if ( Midi ) {
-    MIDI_poll();
+    MIDI_poll(); //On affiche (ca sert toujours)
+    MIDI_sendToCable(); //On envoie (ca c'est pas encore fini)
   }
 }
 
@@ -53,23 +53,28 @@ void MIDI_poll()
   char buf[20];
   uint8_t bufMidi[64];
   uint16_t  rcvd;
+  
+  if (Midi.RecvData( &rcvd,  bufMidi) == 0 ) 
+  {
 
-  if (Midi.idVendor() != vid || Midi.idProduct() != pid) {
-    vid = Midi.idVendor();
-    pid = Midi.idProduct();
-    sprintf(buf, "VID:%04X, PID:%04X", vid, pid);
-    Serial.println(buf);
-  }
-  if (Midi.RecvData( &rcvd,  bufMidi) == 0 ) {
+    //formatage d'affichage dans le Serial Monitor
     uint32_t time = (uint32_t)millis();
     sprintf(buf, "%04X%04X: ", (uint16_t)(time >> 16), (uint16_t)(time & 0xFFFF)); // Split variable to prevent warnings on the ESP8266 platform
     Serial.print(buf);
     Serial.print(rcvd);
     Serial.print(':');
-    for (int i = 0; i < 64; i++) {
-      sprintf(buf, " %02X", bufMidi[i]);
-      Serial.print(buf);
-    }
+    for (int i = 0; i < 64; i++) 
+      {
+        sprintf(buf, " %02X", bufMidi[i]);
+        Serial.print(buf);
+      }
     Serial.println("");
+    //c'etait vraiment tres interessant
+    
   }
+}
+
+void MIDI_sendToCable()
+{
+  
 }
